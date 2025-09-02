@@ -306,9 +306,15 @@ class DeploymentExecutor:
                 env_vars[key] = str(value)
         
         # Add secrets directly
-        for key, value in environment.secrets.items():
-            if not key.startswith('_'):  # Skip internal keys
-                env_vars[key] = str(value)
+        if environment.secrets:
+            # Handle case where secrets might be encrypted string or dict
+            if isinstance(environment.secrets, dict):
+                for key, value in environment.secrets.items():
+                    if not key.startswith('_'):  # Skip internal keys
+                        env_vars[key] = str(value)
+            elif isinstance(environment.secrets, str):
+                # Secrets are encrypted but not decrypted, skip for now
+                self._log(deployment, 'WARNING', 'Secrets not decrypted, skipping')
         
         self._log(deployment, 'INFO', f'Prepared {len(env_vars)} environment variables')
         return env_vars

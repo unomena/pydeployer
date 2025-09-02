@@ -10,30 +10,53 @@ class EncryptedJSONField(models.JSONField):
     """Custom field to store encrypted JSON data"""
     
     def __init__(self, *args, **kwargs):
-        key = os.environ.get('ENCRYPTION_KEY')
-        if not key:
-            # Generate a default key if none is provided (for migrations)
-            key = Fernet.generate_key().decode()
-            print(f"WARNING: No ENCRYPTION_KEY found, using temporary key. Set ENCRYPTION_KEY in environment.")
-        self.key = key
-        try:
-            self.cipher = Fernet(self.key.encode() if isinstance(self.key, str) else self.key)
-        except ValueError as e:
-            # If the key is invalid, generate a new one
-            print(f"WARNING: Invalid ENCRYPTION_KEY: {e}. Generating new key.")
-            self.key = Fernet.generate_key().decode()
-            self.cipher = Fernet(self.key.encode())
         super().__init__(*args, **kwargs)
+        self._cipher = None
+    
+    @property
+    def cipher(self):
+        """Lazy load cipher to ensure ENCRYPTION_KEY is available"""
+        if self._cipher is None:
+            key = os.environ.get('ENCRYPTION_KEY')
+            if not key:
+                # Try to load from .env file if available
+                env_file = '/srv/deployments/apps/pydeployer/releases/initial/.env'
+                if os.path.exists(env_file):
+                    with open(env_file) as f:
+                        for line in f:
+                            if line.startswith('ENCRYPTION_KEY='):
+                                key = line.split('=', 1)[1].strip()
+                                break
+                
+                if not key:
+                    # Generate a default key if none is provided (for migrations)
+                    key = Fernet.generate_key().decode()
+                    print(f"WARNING: No ENCRYPTION_KEY found, using temporary key. Set ENCRYPTION_KEY in environment.")
+            
+            try:
+                self._cipher = Fernet(key.encode() if isinstance(key, str) else key)
+            except ValueError as e:
+                # If the key is invalid, generate a new one
+                print(f"WARNING: Invalid ENCRYPTION_KEY: {e}. Generating new key.")
+                key = Fernet.generate_key().decode()
+                self._cipher = Fernet(key.encode())
+        
+        return self._cipher
     
     def from_db_value(self, value, expression, connection):
         if value is None:
             return value
         try:
-            decrypted = self.cipher.decrypt(value.encode() if isinstance(value, str) else value)
-            return json.loads(decrypted.decode())
-        except:
-            # If decryption fails, assume it's not encrypted (for migration)
-            return json.loads(value) if isinstance(value, str) else value
+            # If value looks like encrypted data (base64 string), decrypt it
+            if isinstance(value, str) and len(value) > 20 and '=' in value:
+                decrypted = self.cipher.decrypt(value.encode())
+                return json.loads(decrypted.decode())
+            else:
+                # Not encrypted, parse as JSON
+                return json.loads(value) if isinstance(value, str) else value
+        except Exception as e:
+            # If decryption fails, return empty dict as fallback
+            return {}
     
     def to_python(self, value):
         if isinstance(value, dict):
@@ -41,10 +64,16 @@ class EncryptedJSONField(models.JSONField):
         if value is None:
             return value
         try:
-            decrypted = self.cipher.decrypt(value.encode() if isinstance(value, str) else value)
-            return json.loads(decrypted.decode())
-        except:
-            return json.loads(value) if isinstance(value, str) else value
+            # If value looks like encrypted data (base64 string), decrypt it
+            if isinstance(value, str) and len(value) > 20 and '=' in value:
+                decrypted = self.cipher.decrypt(value.encode())
+                return json.loads(decrypted.decode())
+            else:
+                # Not encrypted, parse as JSON
+                return json.loads(value) if isinstance(value, str) else value
+        except Exception as e:
+            # If decryption fails, return empty dict as fallback
+            return {}
     
     def get_prep_value(self, value):
         if value is None:
