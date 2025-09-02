@@ -40,6 +40,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -202,20 +203,5 @@ if not DEBUG:
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
 
-# Auto-migrate on startup (except during migration commands)
-if 'migrate' not in os.sys.argv and 'makemigrations' not in os.sys.argv:
-    import django
-    django.setup()
-    from django.core.management import call_command
-    from django.db import connection
-    
-    try:
-        # Check if migrations table exists
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT 1 FROM django_migrations LIMIT 1")
-    except:
-        # Run migrations if table doesn't exist
-        try:
-            call_command('migrate', '--noinput')
-        except:
-            pass  # Ignore errors during initial setup
+# Note: Auto-migration removed to prevent circular import issues
+# Migrations should be run manually using 'make migrate' or 'python manage.py migrate'
