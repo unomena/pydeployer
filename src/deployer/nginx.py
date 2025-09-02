@@ -35,7 +35,7 @@ class NginxManager:
                 server_name = environment.domain
             else:
                 # Generate default domain
-                server_name = f"{environment.project.name}-{environment.name}.localhost"
+                server_name = "_"  # Accept any hostname
             
             config_content = self._generate_config(
                 upstream_name=upstream_name,
