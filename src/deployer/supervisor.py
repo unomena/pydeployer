@@ -149,8 +149,8 @@ environment={environment}
     def reload_config(self):
         """Reload supervisor configuration"""
         try:
-            subprocess.run(['supervisorctl', 'reread'], check=True, capture_output=True)
-            subprocess.run(['supervisorctl', 'update'], check=True, capture_output=True)
+            subprocess.run(['sudo', 'supervisorctl', 'reread'], check=True, capture_output=True)
+            subprocess.run(['sudo', 'supervisorctl', 'update'], check=True, capture_output=True)
             logger.info("Supervisor configuration reloaded")
         except subprocess.CalledProcessError as e:
             logger.error(f"Failed to reload supervisor config: {e.stderr}")
@@ -161,7 +161,7 @@ environment={environment}
         try:
             # Try graceful restart first
             result = subprocess.run(
-                ['supervisorctl', 'restart', service_name],
+                ['sudo', 'supervisorctl', 'restart', service_name],
                 capture_output=True,
                 text=True,
                 timeout=60
@@ -169,8 +169,8 @@ environment={environment}
             
             if result.returncode != 0:
                 # If restart fails, try stop and start
-                subprocess.run(['supervisorctl', 'stop', service_name], check=False)
-                subprocess.run(['supervisorctl', 'start', service_name], check=True)
+                subprocess.run(['sudo', 'supervisorctl', 'stop', service_name], check=False)
+                subprocess.run(['sudo', 'supervisorctl', 'start', service_name], check=True)
             
             logger.info(f"Reloaded service {service_name}")
             
@@ -184,7 +184,7 @@ environment={environment}
     def start_service(self, service_name):
         """Start a service"""
         try:
-            subprocess.run(['supervisorctl', 'start', service_name], check=True, capture_output=True)
+            subprocess.run(['sudo', 'supervisorctl', 'start', service_name], check=True, capture_output=True)
             logger.info(f"Started service {service_name}")
         except subprocess.CalledProcessError as e:
             logger.error(f"Failed to start service {service_name}: {e.stderr}")
@@ -193,7 +193,7 @@ environment={environment}
     def stop_service(self, service_name):
         """Stop a service"""
         try:
-            subprocess.run(['supervisorctl', 'stop', service_name], check=True, capture_output=True)
+            subprocess.run(['sudo', 'supervisorctl', 'stop', service_name], check=True, capture_output=True)
             logger.info(f"Stopped service {service_name}")
         except subprocess.CalledProcessError as e:
             logger.error(f"Failed to stop service {service_name}: {e.stderr}")
@@ -203,7 +203,7 @@ environment={environment}
         """Get status of a service"""
         try:
             result = subprocess.run(
-                ['supervisorctl', 'status', service_name],
+                ['sudo', 'supervisorctl', 'status', service_name],
                 capture_output=True,
                 text=True
             )
