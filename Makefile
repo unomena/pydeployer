@@ -246,26 +246,26 @@ cleanup-deployment: ## Clean up failed deployment (usage: make cleanup-deploymen
 	@echo "$(YELLOW)Cleaning up failed deployment for $(PROJECT) in $(ENV)...$(NC)"
 	@cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && \
 		sudo -u $(DEPLOYMENT_USER) bash -c 'source .env && \
-		$(VENV_PATH)/bin/python src/manage.py shell << EOF
-from core.models import Deployment, Environment, Project
-try:
-    p = Project.objects.get(name="$(PROJECT)")
-    e = Environment.objects.get(project=p, name="$(ENV)")
-    d = e.deployments.filter(status__in=["pending", "cloning", "building", "deploying", "testing"]).first()
-    if d:
-        d.status = "failed"
-        d.error_message = "Manually cleaned up"
-        d.save()
-        print("Deployment marked as failed")
-    else:
-        print("No pending deployment found")
-except Project.DoesNotExist:
-    print("Project $(PROJECT) not found")
-except Environment.DoesNotExist:
-    print("Environment $(ENV) not found for project $(PROJECT)")
-except Exception as e:
-    print(f"Error: {e}")
-EOF'
+		$(VENV_PATH)/bin/python src/manage.py shell <<-CLEANUP_EOF
+		from core.models import Deployment, Environment, Project
+		try:
+		    p = Project.objects.get(name="$(PROJECT)")
+		    e = Environment.objects.get(project=p, name="$(ENV)")
+		    d = e.deployments.filter(status__in=["pending", "cloning", "building", "deploying", "testing"]).first()
+		    if d:
+		        d.status = "failed"
+		        d.error_message = "Manually cleaned up"
+		        d.save()
+		        print("Deployment marked as failed")
+		    else:
+		        print("No pending deployment found")
+		except Project.DoesNotExist:
+		    print("Project $(PROJECT) not found")
+		except Environment.DoesNotExist:
+		    print("Environment $(ENV) not found for project $(PROJECT)")
+		except Exception as e:
+		    print(f"Error: {e}")
+		CLEANUP_EOF'
 	@echo "$(GREEN)Cleanup complete. You can now retry the deployment.$(NC)"
 
 .PHONY: reset-deployment
