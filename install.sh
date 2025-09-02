@@ -17,7 +17,8 @@ DEPLOYMENT_USER="deploy"
 DB_NAME="pydeployer"
 DB_USER="deployer"
 DB_PASSWORD="deployer_pass_2024"
-REPO_URL="https://gitlab.com/company/pydeployer.git"
+REPO_URL="${REPO_URL:-https://gitlab.com/unomena-internal/py-deployer.git}"
+GITLAB_TOKEN="${GITLAB_TOKEN:-}"
 SERVER_IP=$(hostname -I | awk '{print $1}')
 
 # Function to print colored output
@@ -111,7 +112,38 @@ if [ -d "$DEPLOYMENT_ROOT/repos/pydeployer" ]; then
     print_warning "Repository already exists, pulling latest changes..."
     sudo -u $DEPLOYMENT_USER git -C $DEPLOYMENT_ROOT/repos/pydeployer pull
 else
-    sudo -u $DEPLOYMENT_USER git clone $REPO_URL $DEPLOYMENT_ROOT/repos/pydeployer
+    # Check for local directory first
+    if [ -d "/tmp/pydeployer" ]; then
+        # Use local directory if available
+        print_status "Using local PyDeployer directory..."
+        sudo -u $DEPLOYMENT_USER cp -r /tmp/pydeployer $DEPLOYMENT_ROOT/repos/
+    elif [ -d "/tmp/py-deployer" ]; then
+        # Also check for py-deployer name
+        print_status "Using local py-deployer directory..."
+        sudo -u $DEPLOYMENT_USER cp -r /tmp/py-deployer $DEPLOYMENT_ROOT/repos/pydeployer
+    elif [ -f "/tmp/pydeployer.tar.gz" ]; then
+        # Use local archive if available
+        print_status "Using local PyDeployer archive..."
+        sudo -u $DEPLOYMENT_USER tar -xzf /tmp/pydeployer.tar.gz -C $DEPLOYMENT_ROOT/repos/
+        sudo -u $DEPLOYMENT_USER mv $DEPLOYMENT_ROOT/repos/pydeployer-* $DEPLOYMENT_ROOT/repos/pydeployer 2>/dev/null || true
+    elif [[ $REPO_URL == *"gitlab.com"* ]] && [ -n "$GITLAB_TOKEN" ]; then
+        # Use token for authentication
+        AUTH_URL=$(echo $REPO_URL | sed "s|https://|https://oauth2:${GITLAB_TOKEN}@|")
+        sudo -u $DEPLOYMENT_USER git clone $AUTH_URL $DEPLOYMENT_ROOT/repos/pydeployer
+    else
+        # Try SSH URL as fallback
+        SSH_URL=$(echo $REPO_URL | sed 's|https://gitlab.com/|git@gitlab.com:|')
+        print_status "Trying SSH clone..."
+        if sudo -u $DEPLOYMENT_USER git clone $SSH_URL $DEPLOYMENT_ROOT/repos/pydeployer 2>/dev/null; then
+            print_status "Successfully cloned via SSH"
+        else
+            print_error "Cannot access repository. Please provide one of:
+            - SSH access to GitLab
+            - GITLAB_TOKEN environment variable for private repo
+            - /tmp/pydeployer or /tmp/py-deployer directory
+            - /tmp/pydeployer.tar.gz archive file"
+        fi
+    fi
 fi
 
 # Create initial release
@@ -159,7 +191,7 @@ CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8000
 ENCRYPTION_KEY=$(python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
 
 # PyDeployer Self-Management
-PYDEPLOYER_REPO=$REPO_URL
+PYDEPLOYER_REPO=https://gitlab.com/unomena-internal/py-deployer.git
 EOF
 
 chown $DEPLOYMENT_USER:$DEPLOYMENT_USER $RELEASE_DIR/.env
@@ -333,10 +365,7 @@ from deployer.executor import DeploymentExecutor
 if not Project.objects.filter(name='pydeployer').exists():
     project = Project.objects.create(
         name='pydeployer',
-        repository_url='$REPO_URL',
-        branch='main',
-        framework='django',
-        python_version='3',
+        repository_url='https://gitlab.com/unomena-internal/py-deployer.git',
         description='PyDeployer - Python Deployment Orchestration System'
     )
     
