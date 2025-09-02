@@ -231,6 +231,59 @@ rollback: ## Rollback a deployment (usage: make rollback PROJECT=myapp ENV=prod)
 	@sudo -u $(DEPLOYMENT_USER) bash -c 'source $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/.env && \
 		$(MANAGE_PY) rollback $(PROJECT) --env=$(ENV)'
 
+.PHONY: cleanup-deployment
+cleanup-deployment: ## Clean up failed deployment (usage: make cleanup-deployment PROJECT=myapp ENV=prod)
+	@if [ -z "$(PROJECT)" ]; then \
+		echo "$(RED)Error: PROJECT is required$(NC)"; \
+		echo "Usage: make cleanup-deployment PROJECT=myapp ENV=prod"; \
+		exit 1; \
+	fi
+	@if [ -z "$(ENV)" ]; then \
+		echo "$(RED)Error: ENV is required$(NC)"; \
+		echo "Usage: make cleanup-deployment PROJECT=myapp ENV=prod"; \
+		exit 1; \
+	fi
+	@echo "$(YELLOW)Cleaning up failed deployment for $(PROJECT) in $(ENV)...$(NC)"
+	@cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && \
+		sudo -u $(DEPLOYMENT_USER) bash -c 'source .env && \
+		$(VENV_PATH)/bin/python src/manage.py shell << EOF
+from core.models import Deployment, Environment, Project
+try:
+    p = Project.objects.get(name="$(PROJECT)")
+    e = Environment.objects.get(project=p, name="$(ENV)")
+    d = e.deployments.filter(status__in=["pending", "cloning", "building", "deploying", "testing"]).first()
+    if d:
+        d.status = "failed"
+        d.error_message = "Manually cleaned up"
+        d.save()
+        print("Deployment marked as failed")
+    else:
+        print("No pending deployment found")
+except Project.DoesNotExist:
+    print("Project $(PROJECT) not found")
+except Environment.DoesNotExist:
+    print("Environment $(ENV) not found for project $(PROJECT)")
+except Exception as e:
+    print(f"Error: {e}")
+EOF'
+	@echo "$(GREEN)Cleanup complete. You can now retry the deployment.$(NC)"
+
+.PHONY: reset-deployment
+reset-deployment: ## Reset all deployments for a project (DANGEROUS!)
+	@if [ -z "$(PROJECT)" ]; then \
+		echo "$(RED)Error: PROJECT is required$(NC)"; \
+		echo "Usage: make reset-deployment PROJECT=myapp"; \
+		exit 1; \
+	fi
+	@echo "$(RED)WARNING: This will delete all deployment records for $(PROJECT)!$(NC)"
+	@read -p "Are you sure? (yes/no): " confirm && [ "$$confirm" = "yes" ] || exit 1
+	@sudo -u $(DEPLOYMENT_USER) bash -c 'source $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/.env && \
+		$(VENV_PATH)/bin/python src/manage.py shell -c "from core.models import Project, Deployment; \
+		p = Project.objects.get(name=\"$(PROJECT)\"); \
+		count = p.environments.all().values_list(\"deployments\").count(); \
+		Deployment.objects.filter(environment__project=p).delete(); \
+		print(f\"Deleted {count} deployments for $(PROJECT)\")"'
+
 .PHONY: register-project
 register-project: ## Register a new project (usage: make register-project NAME=myapp REPO=git@... PORT=8100)
 	@if [ -z "$(NAME)" ]; then \
