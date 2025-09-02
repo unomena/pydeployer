@@ -16,6 +16,7 @@ from .git_manager import GitManager
 from .venv_manager import VenvManager
 from .supervisor import SupervisorManager
 from .nginx import NginxManager
+from .database import DatabaseManager
 
 logger = logging.getLogger('deployer')
 
@@ -28,6 +29,7 @@ class DeploymentExecutor:
         self.venv_manager = VenvManager()
         self.supervisor_manager = SupervisorManager()
         self.nginx_manager = NginxManager()
+        self.database_manager = DatabaseManager()
     
     def deploy(self, project_name, environment_name, commit_sha=None, deployed_by='system'):
         """Execute a deployment"""
@@ -52,6 +54,7 @@ class DeploymentExecutor:
                 self._clone_or_update_repo(project, deployment)
                 self._checkout_commit(project, deployment, commit_sha)
                 config = self._load_deployment_config(project, environment_name, deployment)
+                self._ensure_database(project, environment, config, deployment)
                 self._create_release_directory(project, environment, deployment)
                 self._setup_virtual_environment(project, environment, config, deployment)
                 self._install_dependencies(project, environment, config, deployment)
@@ -234,6 +237,31 @@ class DeploymentExecutor:
         environment.save()
         
         return config
+    
+    def _ensure_database(self, project, environment, config, deployment):
+        """Ensure database exists and is accessible"""
+        db_config = config.get('database')
+        
+        if not db_config:
+            self._log(deployment, 'INFO', 'No database configuration found, skipping database check')
+            return
+        
+        self._log(deployment, 'INFO', 'Checking database configuration')
+        
+        # Ensure database exists
+        success, message = self.database_manager.ensure_database(db_config, deployment)
+        
+        if not success:
+            raise RuntimeError(f"Database check failed: {message}")
+        
+        self._log(deployment, 'INFO', message)
+        
+        # Build DATABASE_URL and add to environment if needed
+        if db_config.get('engine') != 'sqlite3':
+            database_url = self.database_manager.build_database_url(db_config)
+            # This will be picked up by _prepare_environment_variables
+            config.setdefault('env_vars', {})['DATABASE_URL'] = database_url
+            self._log(deployment, 'DEBUG', f'Set DATABASE_URL for deployment')
     
     def _create_release_directory(self, project, environment, deployment):
         """Create release directory"""
