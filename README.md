@@ -2,6 +2,35 @@
 
 A Django-based deployment orchestration system that replaces Docker containers with Python virtual environments, designed to run multiple Python applications on a single server efficiently.
 
+## 🚀 TLDR - Quick Start (For the Impatient)
+
+```bash
+# Clone the repository
+git clone git@gitlab.com:unomena-internal/py-deployer.git
+cd py-deployer
+
+# One command to rule them all
+make quickstart
+
+# Create your admin user
+make create-superuser
+
+# Start PyDeployer
+make start
+
+# Register your first project
+make register-project NAME=my-app REPO=git@gitlab.com:my-org/my-app.git PORT=8100
+
+# Deploy it!
+make deploy PROJECT=my-app ENV=prod
+
+# Access admin at http://localhost:8000/admin
+```
+
+That's it! You're deployed! 🎉
+
+---
+
 ## Features
 
 - **Self-Managing**: PyDeployer can deploy and manage itself
@@ -26,17 +55,33 @@ PyDeployer manages deployments by:
 
 ## Installation
 
+The Makefile provides automated installation commands that handle all setup steps. You can use `make quickstart` for a complete automated setup, or follow the manual steps below.
+
 ### Prerequisites
 
-- Ubuntu/Debian server (16GB RAM, 4 CPUs recommended)
-- Python 3.11+
-- PostgreSQL 12+
-- Redis
-- Nginx
-- Supervisor
+- Ubuntu LTS (20.04 or 22.04 recommended)
+- sudo access
 - Git
+- 16GB RAM, 4 CPUs (recommended for production)
 
-### Initial Setup
+### Automated Setup with Makefile
+
+The easiest way to install PyDeployer is using the included Makefile:
+
+```bash
+# Complete automated setup
+make quickstart
+
+# This will:
+# 1. Install all system dependencies (Python 3.11, Nginx, Supervisor, Redis)
+# 2. Install and configure PostgreSQL
+# 3. Create deployment user and directory structure in /srv/deployments
+# 4. Install PyDeployer
+# 5. Initialize the database
+# 6. Register PyDeployer for self-management
+```
+
+### Manual Setup
 
 1. **Install system dependencies:**
 ```bash
@@ -119,6 +164,96 @@ python manage.py rollback uno-admin --env=prod
 cd /opt/deployments/apps/pydeployer/releases/current/src
 python manage.py register_project <name> --repo=<git_url> --port-start=<port>
 python manage.py register_project my-app --repo=git@gitlab.com:company/my-app.git --port-start=8100
+```
+
+## Makefile Commands
+
+The Makefile provides convenient commands for all PyDeployer operations. All commands can be viewed with `make help`.
+
+### 📦 Installation & Setup
+
+| Command | Description |
+|---------|-------------|
+| `make quickstart` | Complete automated setup from scratch |
+| `make install-postgres` | Install PostgreSQL (latest stable) |
+| `make setup-database` | Create PyDeployer database and user |
+| `make install-system-deps` | Install all system dependencies |
+| `make create-deployment-user` | Create deploy user and `/srv/deployments` structure |
+| `make install-pydeployer` | Install PyDeployer to `/srv/deployments` |
+| `make configure-pydeployer` | Configure environment variables |
+| `make init-database` | Initialize database with migrations |
+| `make create-superuser` | Create Django admin user |
+| `make register-self` | Register PyDeployer to manage itself |
+
+### 🚀 Deployment Operations
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `make deploy` | Deploy a project | `make deploy PROJECT=my-app ENV=prod` |
+| `make rollback` | Rollback deployment | `make rollback PROJECT=my-app ENV=prod` |
+| `make register-project` | Register new project | `make register-project NAME=my-app REPO=git@... PORT=8100` |
+| `make list-projects` | List all registered projects | `make list-projects` |
+| `make list-deployments` | Show recent deployments | `make list-deployments` |
+
+### 🔧 Service Management
+
+| Command | Description |
+|---------|-------------|
+| `make start` | Start PyDeployer service |
+| `make stop` | Stop PyDeployer service |
+| `make restart` | Restart PyDeployer service |
+| `make status` | Check all services status |
+| `make logs` | View PyDeployer logs (tail -f) |
+
+### 🛠️ Development Tools
+
+| Command | Description |
+|---------|-------------|
+| `make shell` | Open Django shell |
+| `make dbshell` | Open PostgreSQL shell |
+| `make migrate` | Apply database migrations |
+| `make makemigrations` | Create new migrations |
+| `make test` | Run test suite |
+| `make collectstatic` | Collect static files |
+| `make clean` | Clean temporary files |
+
+### 💡 Common Workflows
+
+**First Time Setup:**
+```bash
+make quickstart
+make create-superuser
+make start
+```
+
+**Register and Deploy a Project:**
+```bash
+# Register the project
+make register-project NAME=uno-admin REPO=git@gitlab.com:unomena/uno-admin.git PORT=8100
+
+# Deploy to QA
+make deploy PROJECT=uno-admin ENV=qa
+
+# Deploy to Production
+make deploy PROJECT=uno-admin ENV=prod
+
+# If something goes wrong, rollback
+make rollback PROJECT=uno-admin ENV=prod
+```
+
+**Daily Operations:**
+```bash
+# Check status
+make status
+
+# View recent deployments
+make list-deployments
+
+# Watch logs
+make logs
+
+# Restart if needed
+make restart
 ```
 
 ### REST API
@@ -215,8 +350,10 @@ Access the Django admin at `http://localhost:8000/admin/` to:
 
 ## Directory Structure
 
+The Makefile sets up the following directory structure in `/srv/deployments` (note: changed from `/opt/deployments` for better compliance with Linux FHS):
+
 ```
-/opt/deployments/
+/srv/deployments/
 ├── apps/                    # Application deployments
 │   ├── pydeployer/
 │   │   ├── envs/           # Virtual environments
@@ -256,6 +393,60 @@ PyDeployer provides:
 
 ## Troubleshooting
 
+### Using Makefile Commands
+
+**Check all services:**
+```bash
+make status
+```
+
+**View logs:**
+```bash
+make logs
+```
+
+**If PostgreSQL installation fails:**
+```bash
+# Check Ubuntu version
+lsb_release -a
+
+# Manually run the install script
+bash scripts/install_postgres.sh
+
+# Or install PostgreSQL manually
+sudo apt-get install postgresql postgresql-contrib
+```
+
+**If deployment fails:**
+```bash
+# Check project registration
+make list-projects
+
+# Check recent deployments
+make list-deployments
+
+# View detailed logs
+make logs
+
+# Try manual deployment
+make shell
+# Then in shell:
+from deployer.executor import DeploymentExecutor
+executor = DeploymentExecutor()
+executor.deploy('project-name', 'qa')
+```
+
+**Permission issues:**
+```bash
+# Ensure deploy user owns directories
+sudo chown -R deploy:deploy /srv/deployments
+
+# Check deploy user exists
+id deploy
+```
+
+### Manual Operations
+
 **Check service status:**
 ```bash
 supervisorctl status
@@ -263,12 +454,12 @@ supervisorctl status
 
 **View deployment logs:**
 ```bash
-tail -f /opt/deployments/apps/<project>/logs/<environment>/*.log
+tail -f /srv/deployments/apps/<project>/logs/<environment>/*.log
 ```
 
 **Manual rollback:**
 ```bash
-cd /opt/deployments/apps/<project>/releases/<environment>
+cd /srv/deployments/apps/<project>/releases/<environment>
 rm current
 ln -s <previous-version> current
 supervisorctl restart <project>-<environment>-*
