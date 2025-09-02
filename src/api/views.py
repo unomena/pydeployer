@@ -252,30 +252,30 @@ class ServiceViewSet(viewsets.ModelViewSet):
         return queryset
     
     @action(detail=True, methods=['post'])
-    def action(self, request, pk=None):
+    def service_action(self, request, pk=None):
         """Perform action on service (start/stop/restart)"""
         service = self.get_object()
         serializer = ServiceActionSerializer(data=request.data)
         
         if serializer.is_valid():
-            action = serializer.validated_data['action']
+            action_type = serializer.validated_data['action']
             supervisor = SupervisorManager()
             
             try:
-                if action == 'start':
+                if action_type == 'start':
                     supervisor.start_service(service.supervisor_name)
                     service.status = 'running'
-                elif action == 'stop':
+                elif action_type == 'stop':
                     supervisor.stop_service(service.supervisor_name)
                     service.status = 'stopped'
-                elif action in ['restart', 'reload']:
+                elif action_type in ['restart', 'reload']:
                     supervisor.reload_service(service.supervisor_name)
                     service.status = 'running'
                 
                 service.save()
                 
                 return Response({
-                    'status': f'Service {action} successful',
+                    'status': f'Service {action_type} successful',
                     'service': ServiceSerializer(service).data
                 })
                 
