@@ -63,7 +63,7 @@ class Project(models.Model):
     port_start = models.IntegerField(help_text="Starting port for service allocation")
     webhook_secret = models.CharField(max_length=255, blank=True)
     active = models.BooleanField(default=True)
-    description = models.TextField(blank=True)
+    description = models.TextField(blank=True, null=True, default='')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
