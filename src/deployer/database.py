@@ -234,7 +234,7 @@ class DatabaseManager:
     def _log(self, deployment, level, message):
         """Log message to deployment and logger"""
         if deployment:
-            from .models import DeploymentLog
+            from core.models import DeploymentLog
             DeploymentLog.objects.create(
                 deployment=deployment,
                 level=level,
