@@ -75,6 +75,12 @@ create-deployment-user: ## Create deployment user and directories
 	@sudo usermod -aG sudo $(DEPLOYMENT_USER) || true
 	@echo "$(GREEN)Deployment user and directories created!$(NC)"
 
+.PHONY: setup-deploy-key
+setup-deploy-key: ## Setup SSH key for deploy user
+	@echo "$(YELLOW)Setting up SSH key for deploy user...$(NC)"
+	@chmod +x $(CURRENT_DIR)/scripts/setup_deploy_key.sh
+	@sudo $(CURRENT_DIR)/scripts/setup_deploy_key.sh
+
 .PHONY: setup-environment
 setup-environment: ## Complete environment setup
 	@make install-system-deps
