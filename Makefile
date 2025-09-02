@@ -129,9 +129,6 @@ init-database: ## Initialize PyDeployer database
 	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && $(VENV_PATH)/bin/python src/manage.py migrate authtoken'
 	@echo "Migrating PyDeployer apps..."
 	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && $(VENV_PATH)/bin/python src/manage.py migrate core'
-	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && $(VENV_PATH)/bin/python src/manage.py migrate api'
-	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && $(VENV_PATH)/bin/python src/manage.py migrate deployer'
-	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && $(VENV_PATH)/bin/python src/manage.py migrate webhooks'
 	@echo "$(GREEN)Database initialized!$(NC)"
 
 .PHONY: create-superuser
@@ -302,9 +299,6 @@ migrate: ## Apply migrations (all apps in order)
 	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && $(VENV_PATH)/bin/python src/manage.py migrate authtoken'
 	@echo "Migrating PyDeployer apps..."
 	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && $(VENV_PATH)/bin/python src/manage.py migrate core'
-	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && $(VENV_PATH)/bin/python src/manage.py migrate api'
-	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && $(VENV_PATH)/bin/python src/manage.py migrate deployer'
-	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && $(VENV_PATH)/bin/python src/manage.py migrate webhooks'
 	@echo "$(GREEN)All migrations applied!$(NC)"
 
 # ==================== Quick Setup ====================
