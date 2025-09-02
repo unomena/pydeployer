@@ -19,12 +19,13 @@ env_vars:
   DJANGO_SETTINGS_MODULE: pydeployer.settings
   PYTHONUNBUFFERED: "1"
   DEBUG: "0"
-  ALLOWED_HOSTS: "deploy.company.com,localhost"
-  DATABASE_URL: ${SECRET_DATABASE_URL}
-  REDIS_URL: ${SECRET_REDIS_URL}
-  SECRET_KEY: ${SECRET_DJANGO_SECRET_KEY}
-  DEPLOYMENT_ROOT: /opt/deployments
+  ALLOWED_HOSTS: "*"
+  DATABASE_URL: "postgresql://deployer:deployer@localhost/pydeployer"
+  REDIS_URL: "redis://localhost:6379/0"
+  SECRET_KEY: "django-insecure-prod-key-please-change-in-production"
+  DEPLOYMENT_ROOT: "/srv/deployments"
   DEPLOYMENT_USER: deploy
+  ENCRYPTION_KEY: "will-be-loaded-from-env-file"
 
 hooks:
   pre_deploy:
