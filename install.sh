@@ -307,6 +307,7 @@ $DEPLOYMENT_USER ALL=(ALL) NOPASSWD: /usr/bin/supervisorctl *
 $DEPLOYMENT_USER ALL=(ALL) NOPASSWD: /usr/sbin/nginx *
 $DEPLOYMENT_USER ALL=(ALL) NOPASSWD: /bin/systemctl restart supervisor
 $DEPLOYMENT_USER ALL=(ALL) NOPASSWD: /bin/systemctl reload nginx
+$DEPLOYMENT_USER ALL=(postgres) NOPASSWD: /usr/bin/psql
 EOF
 
 # Start services

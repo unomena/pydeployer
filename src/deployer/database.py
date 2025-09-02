@@ -83,39 +83,35 @@ class DatabaseManager:
     
     def _create_postgresql_database(self, host, port, db_name, db_user, db_password, deployment=None):
         """Create PostgreSQL database"""
-        try:
-            # Try to connect to postgres database to create the new database
-            # First try with provided credentials
+        # For local deployments, try sudo first
+        if host in ['localhost', '127.0.0.1']:
+            # Use sudo for local postgres
             try:
-                conn = psycopg2.connect(
-                    host=host,
-                    port=port,
-                    database='postgres',
-                    user=db_user,
-                    password=db_password,
-                    connect_timeout=5
-                )
-            except:
-                # If that fails, try with postgres user (for local deployments)
-                if host in ['localhost', '127.0.0.1']:
-                    # Use sudo for local postgres
-                    try:
-                        cmd = ['sudo', '-u', 'postgres', 'psql', '-c', 
-                               f"CREATE DATABASE {db_name} OWNER {db_user};"]
-                        result = subprocess.run(cmd, capture_output=True, text=True)
-                        if result.returncode == 0:
-                            self._log(deployment, 'INFO', f"Created database {db_name} using sudo")
-                            return True, f"Database {db_name} created successfully"
-                        else:
-                            # Database might already exist
-                            if 'already exists' in result.stderr:
-                                return True, f"Database {db_name} already exists"
-                            return False, f"Failed to create database: {result.stderr}"
-                    except Exception as e:
-                        return False, f"Failed to create database with sudo: {str(e)}"
+                cmd = ['sudo', '-u', 'postgres', 'psql', '-c', 
+                       f"CREATE DATABASE {db_name} OWNER {db_user};"]
+                result = subprocess.run(cmd, capture_output=True, text=True)
+                if result.returncode == 0:
+                    self._log(deployment, 'INFO', f"Created database {db_name} using sudo")
+                    return True, f"Database {db_name} created successfully"
                 else:
-                    # For remote databases, we can't create without proper credentials
-                    return False, "Cannot create database on remote server without admin credentials"
+                    # Database might already exist
+                    if 'already exists' in result.stderr:
+                        return True, f"Database {db_name} already exists"
+                    # Try without sudo as fallback
+                    self._log(deployment, 'WARNING', f"Sudo failed, trying direct connection")
+            except Exception as e:
+                self._log(deployment, 'WARNING', f"Sudo attempt failed: {str(e)}, trying direct connection")
+        
+        # Try with provided credentials
+        try:
+            conn = psycopg2.connect(
+                host=host,
+                port=port,
+                database='postgres',
+                user=db_user,
+                password=db_password,
+                connect_timeout=5
+            )
             
             # If we got a connection, create the database
             conn.autocommit = True
