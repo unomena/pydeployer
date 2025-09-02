@@ -121,7 +121,17 @@ configure-pydeployer: ## Configure PyDeployer environment
 .PHONY: init-database
 init-database: ## Initialize PyDeployer database
 	@echo "$(YELLOW)Initializing database...$(NC)"
-	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && $(VENV_PATH)/bin/python src/manage.py migrate'
+	@echo "Migrating Django built-in apps..."
+	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && $(VENV_PATH)/bin/python src/manage.py migrate contenttypes'
+	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && $(VENV_PATH)/bin/python src/manage.py migrate auth'
+	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && $(VENV_PATH)/bin/python src/manage.py migrate admin'
+	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && $(VENV_PATH)/bin/python src/manage.py migrate sessions'
+	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && $(VENV_PATH)/bin/python src/manage.py migrate authtoken'
+	@echo "Migrating PyDeployer apps..."
+	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && $(VENV_PATH)/bin/python src/manage.py migrate core'
+	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && $(VENV_PATH)/bin/python src/manage.py migrate api'
+	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && $(VENV_PATH)/bin/python src/manage.py migrate deployer'
+	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && $(VENV_PATH)/bin/python src/manage.py migrate webhooks'
 	@echo "$(GREEN)Database initialized!$(NC)"
 
 .PHONY: create-superuser
@@ -282,9 +292,20 @@ makemigrations: ## Create new migrations
 		$(VENV_PATH)/bin/python src/manage.py makemigrations'
 
 .PHONY: migrate
-migrate: ## Apply migrations
-	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && \
-		$(VENV_PATH)/bin/python src/manage.py migrate'
+migrate: ## Apply migrations (all apps in order)
+	@echo "$(YELLOW)Applying migrations...$(NC)"
+	@echo "Migrating Django built-in apps..."
+	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && $(VENV_PATH)/bin/python src/manage.py migrate contenttypes'
+	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && $(VENV_PATH)/bin/python src/manage.py migrate auth'
+	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && $(VENV_PATH)/bin/python src/manage.py migrate admin'
+	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && $(VENV_PATH)/bin/python src/manage.py migrate sessions'
+	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && $(VENV_PATH)/bin/python src/manage.py migrate authtoken'
+	@echo "Migrating PyDeployer apps..."
+	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && $(VENV_PATH)/bin/python src/manage.py migrate core'
+	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && $(VENV_PATH)/bin/python src/manage.py migrate api'
+	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && $(VENV_PATH)/bin/python src/manage.py migrate deployer'
+	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && $(VENV_PATH)/bin/python src/manage.py migrate webhooks'
+	@echo "$(GREEN)All migrations applied!$(NC)"
 
 # ==================== Quick Setup ====================
 
