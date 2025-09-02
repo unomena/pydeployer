@@ -227,6 +227,8 @@ EOF
 
 # Configure Supervisor
 print_status "Configuring Supervisor..."
+# Get the encryption key from .env file
+ENCRYPTION_KEY=$(grep ENCRYPTION_KEY $RELEASE_DIR/.env | cut -d= -f2)
 cat > /etc/supervisor/conf.d/pydeployer.conf <<EOF
 [program:pydeployer-web]
 command=$VENV_PATH/bin/gunicorn --bind 0.0.0.0:8000 --workers=2 --threads=4 --worker-class=gthread pydeployer.wsgi
@@ -244,7 +246,7 @@ stdout_logfile_backups=5
 stderr_logfile=$DEPLOYMENT_ROOT/apps/pydeployer/logs/prod/web_stderr.log
 stderr_logfile_maxbytes=10MB
 stderr_logfile_backups=5
-environment=DJANGO_SETTINGS_MODULE="pydeployer.settings",PYTHONUNBUFFERED="1",DEBUG="0",ALLOWED_HOSTS="*",DATABASE_URL="postgresql://$DB_USER:$DB_PASSWORD@localhost/$DB_NAME",DEPLOYMENT_ROOT="$DEPLOYMENT_ROOT",ENCRYPTION_KEY="will-be-loaded-from-env-file"
+environment=DJANGO_SETTINGS_MODULE="pydeployer.settings",PYTHONUNBUFFERED="1",DEBUG="0",ALLOWED_HOSTS="*",DATABASE_URL="postgresql://$DB_USER:$DB_PASSWORD@localhost/$DB_NAME",DEPLOYMENT_ROOT="$DEPLOYMENT_ROOT",ENCRYPTION_KEY="$ENCRYPTION_KEY"
 EOF
 
 # Configure Nginx
