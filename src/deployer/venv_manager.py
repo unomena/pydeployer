@@ -26,12 +26,20 @@ class VenvManager:
                     subprocess.run([python_exe, '-m', 'venv', venv_path], check=True)
                     logger.info(f"Created virtual environment at {venv_path} with Python {python_version}")
                 except (subprocess.CalledProcessError, FileNotFoundError):
-                    # Fall back to default Python
-                    logger.warning(f"Python {python_version} not found, using default Python")
-                    venv.create(venv_path, with_pip=True)
+                    # Try without patch version (e.g., python3.11 -> python3)
+                    try:
+                        major_version = '.'.join(python_version.split('.')[:1])
+                        python_exe = f"python{major_version}"
+                        subprocess.run([python_exe, '--version'], check=True, capture_output=True)
+                        subprocess.run([python_exe, '-m', 'venv', venv_path], check=True)
+                        logger.warning(f"Python {python_version} not found, using Python {major_version}")
+                    except (subprocess.CalledProcessError, FileNotFoundError):
+                        # Fall back to default Python
+                        logger.warning(f"Python {python_version} not found, using default Python 3")
+                        subprocess.run(['python3', '-m', 'venv', venv_path], check=True)
             else:
-                # Use default Python
-                venv.create(venv_path, with_pip=True)
+                # Use default Python 3
+                subprocess.run(['python3', '-m', 'venv', venv_path], check=True)
                 logger.info(f"Created virtual environment at {venv_path}")
             
             # Upgrade pip

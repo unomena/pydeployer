@@ -50,12 +50,21 @@ setup-database: ## Create PyDeployer database and user
 install-system-deps: ## Install system dependencies
 	@echo "$(YELLOW)Installing system dependencies...$(NC)"
 	@sudo apt-get update
+	@# Try to install Python 3.11, fallback to default python3
+	@if sudo apt-cache show python3.11 > /dev/null 2>&1; then \
+		echo "Installing Python 3.11..."; \
+		sudo apt-get install -y python3.11 python3.11-venv python3.11-dev; \
+	else \
+		echo "Python 3.11 not available, using default Python 3..."; \
+		sudo apt-get install -y python3 python3-venv python3-dev; \
+	fi
 	@sudo apt-get install -y \
-		python3.11 python3.11-venv python3-pip \
+		python3-pip \
 		git nginx supervisor redis-server \
-		build-essential libpq-dev python3-dev \
+		build-essential libpq-dev \
 		curl wget vim htop
 	@echo "$(GREEN)System dependencies installed!$(NC)"
+	@python3 --version
 
 .PHONY: create-deployment-user
 create-deployment-user: ## Create deployment user and directories
@@ -82,7 +91,14 @@ install-pydeployer: ## Install PyDeployer for the first time
 	@sudo mkdir -p $(DEPLOYMENT_ROOT)/apps/pydeployer/releases
 	@sudo cp -r $(CURRENT_DIR) $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/initial
 	@sudo chown -R $(DEPLOYMENT_USER):$(DEPLOYMENT_USER) $(DEPLOYMENT_ROOT)/apps/pydeployer
-	@cd $(DEPLOYMENT_ROOT)/apps/pydeployer && sudo -u $(DEPLOYMENT_USER) python3.11 -m venv envs/prod
+	@# Use python3.11 if available, otherwise use python3
+	@if command -v python3.11 > /dev/null 2>&1; then \
+		echo "Using Python 3.11 for virtual environment..."; \
+		cd $(DEPLOYMENT_ROOT)/apps/pydeployer && sudo -u $(DEPLOYMENT_USER) python3.11 -m venv envs/prod; \
+	else \
+		echo "Using default Python 3 for virtual environment..."; \
+		cd $(DEPLOYMENT_ROOT)/apps/pydeployer && sudo -u $(DEPLOYMENT_USER) python3 -m venv envs/prod; \
+	fi
 	@cd $(DEPLOYMENT_ROOT)/apps/pydeployer && sudo -u $(DEPLOYMENT_USER) envs/prod/bin/pip install --upgrade pip
 	@cd $(DEPLOYMENT_ROOT)/apps/pydeployer && sudo -u $(DEPLOYMENT_USER) envs/prod/bin/pip install -r releases/initial/requirements.txt
 	@sudo ln -sfn $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/initial $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current

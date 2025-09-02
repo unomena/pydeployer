@@ -1,6 +1,6 @@
 name: pydeployer
 environment: qa
-python_version: "3.11"
+python_version: "3.11"  # Will use available version if 3.11 not found
 requirements: requirements.txt
 
 services:
