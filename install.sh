@@ -322,34 +322,42 @@ sleep 5  # Wait for services to start
 
 # Create deploy configuration
 cat > $DEPLOYMENT_ROOT/repos/pydeployer/deploy-prod.yaml <<EOF
+name: pydeployer
+environment: production
+python_version: "3.11"
+requirements: requirements.txt
+
 services:
   - name: web
     type: django
     command: gunicorn --bind 0.0.0.0:\${PORT} --workers=2 --threads=4 --worker-class=gthread pydeployer.wsgi
-    env_vars:
-      DATABASE_URL: "postgresql://$DB_USER:$DB_PASSWORD@localhost/$DB_NAME"
-      REDIS_URL: "redis://localhost:6379/0"
-      SECRET_KEY: "django-insecure-prod-key-please-change-in-production"
-      DEBUG: "0"
-      ALLOWED_HOSTS: "*"
-      DEPLOYMENT_ROOT: "$DEPLOYMENT_ROOT"
-      DEPLOYMENT_USER: "$DEPLOYMENT_USER"
-      ENCRYPTION_KEY: "will-be-loaded-from-env-file"
-      PORT: "8000"
+    enabled: true
+    health_check:
+      endpoint: /api/status/
+      interval: 60
+    resources:
+      max_memory: 1024
+      max_cpu: 0.5
+
+env_vars:
+  DJANGO_SETTINGS_MODULE: pydeployer.settings
+  PYTHONUNBUFFERED: "1"
+  DEBUG: "0"
+  ALLOWED_HOSTS: "*"
+  DATABASE_URL: "postgresql://$DB_USER:$DB_PASSWORD@localhost/$DB_NAME"
+  REDIS_URL: "redis://localhost:6379/0"
+  SECRET_KEY: "django-insecure-prod-key-please-change-in-production"
+  DEPLOYMENT_ROOT: "$DEPLOYMENT_ROOT"
+  DEPLOYMENT_USER: "$DEPLOYMENT_USER"
+  ENCRYPTION_KEY: "will-be-loaded-from-env-file"
 
 hooks:
   pre_deploy:
-    - description: "Install dependencies"
-      command: "pip install -r requirements.txt"
-      
+    - cd src && python manage.py migrate --noinput
+    - cd src && python manage.py collectstatic --noinput
+    - cd src && python manage.py check --deploy
   post_deploy:
-    - description: "Run migrations"
-      command: "python manage.py migrate --noinput"
-    - description: "Collect static files"
-      command: "python manage.py collectstatic --noinput"
-
-python_version: "3"
-framework: "django"
+    - cd src && python manage.py check
 EOF
 
 chown $DEPLOYMENT_USER:$DEPLOYMENT_USER $DEPLOYMENT_ROOT/repos/pydeployer/deploy-prod.yaml

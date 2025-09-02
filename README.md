@@ -127,7 +127,7 @@ GRANT ALL PRIVILEGES ON DATABASE pydeployer TO deployer;
 ```bash
 sudo su - deploy
 cd /opt/deployments/apps
-git clone https://gitlab.com/company/pydeployer.git pydeployer/releases/initial
+git clone https://gitlab.com/unomena/pydeployer.git pydeployer/releases/initial
 cd pydeployer
 python3.11 -m venv envs/prod
 source envs/prod/bin/activate
