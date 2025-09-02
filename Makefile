@@ -51,7 +51,7 @@ install-system-deps: ## Install system dependencies
 	@echo "$(YELLOW)Installing system dependencies...$(NC)"
 	@sudo apt-get update
 	@# Try to install Python 3.11, fallback to default python3
-	@if sudo apt-cache show python3.11 > /dev/null 2>&1; then \
+	@if apt-cache search "^python3.11$$" | grep -q "python3.11"; then \
 		echo "Installing Python 3.11..."; \
 		sudo apt-get install -y python3.11 python3.11-venv python3.11-dev; \
 	else \
@@ -89,6 +89,7 @@ setup-environment: ## Complete environment setup
 install-pydeployer: ## Install PyDeployer for the first time
 	@echo "$(YELLOW)Installing PyDeployer...$(NC)"
 	@sudo mkdir -p $(DEPLOYMENT_ROOT)/apps/pydeployer/releases
+	@sudo mkdir -p $(DEPLOYMENT_ROOT)/apps/pydeployer/logs
 	@sudo cp -r $(CURRENT_DIR) $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/initial
 	@sudo chown -R $(DEPLOYMENT_USER):$(DEPLOYMENT_USER) $(DEPLOYMENT_ROOT)/apps/pydeployer
 	@# Use python3.11 if available, otherwise use python3

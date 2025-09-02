@@ -161,7 +161,7 @@ LOGGING = {
         },
         'file': {
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(DEPLOYMENT_ROOT, 'apps', 'pydeployer', 'logs', 'deployer.log') if os.path.exists(DEPLOYMENT_ROOT) else 'deployer.log',
+            'filename': os.path.join(DEPLOYMENT_ROOT, 'apps', 'pydeployer', 'logs', 'deployer.log') if os.path.exists(os.path.join(DEPLOYMENT_ROOT, 'apps', 'pydeployer', 'logs')) else '/tmp/deployer.log',
             'maxBytes': 10485760,  # 10MB
             'backupCount': 5,
             'formatter': 'verbose',
