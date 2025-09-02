@@ -91,6 +91,7 @@ install-pydeployer: ## Install PyDeployer for the first time
 	@sudo mkdir -p $(DEPLOYMENT_ROOT)/apps/pydeployer/releases
 	@sudo mkdir -p $(DEPLOYMENT_ROOT)/apps/pydeployer/logs
 	@sudo cp -r $(CURRENT_DIR) $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/initial
+	@sudo mkdir -p $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/initial/scripts
 	@sudo chown -R $(DEPLOYMENT_USER):$(DEPLOYMENT_USER) $(DEPLOYMENT_ROOT)/apps/pydeployer
 	@# Use python3.11 if available, otherwise use python3
 	@if command -v python3.11 > /dev/null 2>&1; then \
@@ -121,14 +122,10 @@ configure-pydeployer: ## Configure PyDeployer environment
 .PHONY: init-database
 init-database: ## Initialize PyDeployer database
 	@echo "$(YELLOW)Initializing database...$(NC)"
-	@echo "Migrating Django built-in apps..."
-	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && $(VENV_PATH)/bin/python src/manage.py migrate contenttypes'
-	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && $(VENV_PATH)/bin/python src/manage.py migrate auth'
-	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && $(VENV_PATH)/bin/python src/manage.py migrate admin'
-	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && $(VENV_PATH)/bin/python src/manage.py migrate sessions'
-	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && $(VENV_PATH)/bin/python src/manage.py migrate authtoken'
-	@echo "Migrating PyDeployer apps..."
-	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && $(VENV_PATH)/bin/python src/manage.py migrate core'
+	@sudo cp $(CURRENT_DIR)/scripts/migrate.sh $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/scripts/
+	@sudo chown $(DEPLOYMENT_USER):$(DEPLOYMENT_USER) $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/scripts/migrate.sh
+	@sudo chmod +x $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/scripts/migrate.sh
+	@sudo -u $(DEPLOYMENT_USER) bash $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/scripts/migrate.sh
 	@echo "$(GREEN)Database initialized!$(NC)"
 
 .PHONY: create-superuser
@@ -212,8 +209,10 @@ deploy: ## Deploy a project (usage: make deploy PROJECT=myapp ENV=prod)
 		exit 1; \
 	fi
 	@echo "$(YELLOW)Deploying $(PROJECT) to $(ENV)...$(NC)"
-	@sudo -u $(DEPLOYMENT_USER) bash -c 'source $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/.env && \
-		$(MANAGE_PY) deploy $(PROJECT) --env=$(ENV)'
+	@sudo cp $(CURRENT_DIR)/scripts/deploy.sh $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/scripts/
+	@sudo chown $(DEPLOYMENT_USER):$(DEPLOYMENT_USER) $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/scripts/deploy.sh
+	@sudo chmod +x $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/scripts/deploy.sh
+	@sudo -u $(DEPLOYMENT_USER) bash $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/scripts/deploy.sh $(PROJECT) $(ENV) $(COMMIT)
 
 .PHONY: rollback
 rollback: ## Rollback a deployment (usage: make rollback PROJECT=myapp ENV=prod)
@@ -228,8 +227,10 @@ rollback: ## Rollback a deployment (usage: make rollback PROJECT=myapp ENV=prod)
 		exit 1; \
 	fi
 	@echo "$(YELLOW)Rolling back $(PROJECT) in $(ENV)...$(NC)"
-	@sudo -u $(DEPLOYMENT_USER) bash -c 'source $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/.env && \
-		$(MANAGE_PY) rollback $(PROJECT) --env=$(ENV)'
+	@sudo cp $(CURRENT_DIR)/scripts/rollback.sh $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/scripts/
+	@sudo chown $(DEPLOYMENT_USER):$(DEPLOYMENT_USER) $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/scripts/rollback.sh
+	@sudo chmod +x $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/scripts/rollback.sh
+	@sudo -u $(DEPLOYMENT_USER) bash $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/scripts/rollback.sh $(PROJECT) $(ENV)
 
 .PHONY: cleanup-deployment
 cleanup-deployment: ## Clean up failed deployment (usage: make cleanup-deployment PROJECT=myapp ENV=prod)
@@ -244,27 +245,10 @@ cleanup-deployment: ## Clean up failed deployment (usage: make cleanup-deploymen
 		exit 1; \
 	fi
 	@echo "$(YELLOW)Cleaning up failed deployment for $(PROJECT) in $(ENV)...$(NC)"
-	@cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && \
-		sudo -u $(DEPLOYMENT_USER) bash -c 'source .env && \
-		$(VENV_PATH)/bin/python src/manage.py shell -c "\
-from core.models import Deployment, Environment, Project; \
-try: \
-    p = Project.objects.get(name=\"$(PROJECT)\"); \
-    e = Environment.objects.get(project=p, name=\"$(ENV)\"); \
-    d = e.deployments.filter(status__in=[\"pending\", \"cloning\", \"building\", \"deploying\", \"testing\"]).first(); \
-    if d: \
-        d.status = \"failed\"; \
-        d.error_message = \"Manually cleaned up\"; \
-        d.save(); \
-        print(\"Deployment marked as failed\"); \
-    else: \
-        print(\"No pending deployment found\"); \
-except Project.DoesNotExist: \
-    print(\"Project $(PROJECT) not found\"); \
-except Environment.DoesNotExist: \
-    print(\"Environment $(ENV) not found for project $(PROJECT)\"); \
-except Exception as e: \
-    print(f\"Error: {e}\")"'
+	@sudo cp $(CURRENT_DIR)/scripts/cleanup_deployment.sh $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/scripts/
+	@sudo chown $(DEPLOYMENT_USER):$(DEPLOYMENT_USER) $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/scripts/cleanup_deployment.sh
+	@sudo chmod +x $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/scripts/cleanup_deployment.sh
+	@sudo -u $(DEPLOYMENT_USER) bash $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/scripts/cleanup_deployment.sh $(PROJECT) $(ENV)
 	@echo "$(GREEN)Cleanup complete. You can now retry the deployment.$(NC)"
 
 .PHONY: reset-deployment
@@ -275,15 +259,10 @@ reset-deployment: ## Reset all deployments for a project (DANGEROUS!)
 		exit 1; \
 	fi
 	@echo "$(RED)WARNING: This will delete all deployment records for $(PROJECT)!$(NC)"
-	@read -p "Are you sure? (yes/no): " confirm && [ "$$confirm" = "yes" ] || exit 1
-	@cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && \
-		sudo -u $(DEPLOYMENT_USER) bash -c 'source .env && \
-		$(VENV_PATH)/bin/python src/manage.py shell -c "\
-from core.models import Project, Deployment; \
-p = Project.objects.get(name=\"$(PROJECT)\"); \
-count = Deployment.objects.filter(environment__project=p).count(); \
-result = Deployment.objects.filter(environment__project=p).delete(); \
-print(f\"Deleted {count} deployments for $(PROJECT)\")"'
+	@sudo cp $(CURRENT_DIR)/scripts/reset_deployments.sh $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/scripts/
+	@sudo chown $(DEPLOYMENT_USER):$(DEPLOYMENT_USER) $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/scripts/reset_deployments.sh
+	@sudo chmod +x $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/scripts/reset_deployments.sh
+	@sudo -u $(DEPLOYMENT_USER) bash $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/scripts/reset_deployments.sh $(PROJECT)
 
 .PHONY: register-project
 register-project: ## Register a new project (usage: make register-project NAME=myapp REPO=git@... PORT=8100)
@@ -303,8 +282,10 @@ register-project: ## Register a new project (usage: make register-project NAME=m
 		exit 1; \
 	fi
 	@echo "$(YELLOW)Registering project $(NAME)...$(NC)"
-	@sudo -u $(DEPLOYMENT_USER) bash -c 'source $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/.env && \
-		$(MANAGE_PY) register_project $(NAME) --repo=$(REPO) --port-start=$(PORT)'
+	@sudo cp $(CURRENT_DIR)/scripts/register_project.sh $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/scripts/
+	@sudo chown $(DEPLOYMENT_USER):$(DEPLOYMENT_USER) $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/scripts/register_project.sh
+	@sudo chmod +x $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/scripts/register_project.sh
+	@sudo -u $(DEPLOYMENT_USER) bash $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/scripts/register_project.sh "$(NAME)" "$(REPO)" "$(PORT)"
 
 .PHONY: list-projects
 list-projects: ## List all registered projects
@@ -345,14 +326,10 @@ makemigrations: ## Create new migrations
 .PHONY: migrate
 migrate: ## Apply migrations (all apps in order)
 	@echo "$(YELLOW)Applying migrations...$(NC)"
-	@echo "Migrating Django built-in apps..."
-	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && $(VENV_PATH)/bin/python src/manage.py migrate contenttypes'
-	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && $(VENV_PATH)/bin/python src/manage.py migrate auth'
-	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && $(VENV_PATH)/bin/python src/manage.py migrate admin'
-	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && $(VENV_PATH)/bin/python src/manage.py migrate sessions'
-	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && $(VENV_PATH)/bin/python src/manage.py migrate authtoken'
-	@echo "Migrating PyDeployer apps..."
-	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && $(VENV_PATH)/bin/python src/manage.py migrate core'
+	@sudo cp $(CURRENT_DIR)/scripts/migrate.sh $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/scripts/
+	@sudo chown $(DEPLOYMENT_USER):$(DEPLOYMENT_USER) $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/scripts/migrate.sh
+	@sudo chmod +x $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/scripts/migrate.sh
+	@sudo -u $(DEPLOYMENT_USER) bash $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/scripts/migrate.sh
 	@echo "$(GREEN)All migrations applied!$(NC)"
 
 # ==================== Quick Setup ====================
