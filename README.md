@@ -2,12 +2,32 @@
 
 A Django-based deployment orchestration system that replaces Docker containers with Python virtual environments, designed to run multiple Python applications on a single server efficiently.
 
-## 🚀 TLDR - Quick Start (For the Impatient)
+## 🚀 Quick Installation (One Command)
+
+Install PyDeployer on a fresh Ubuntu LTS server with a single command:
+
+```bash
+curl -fsSL https://gitlab.com/company/pydeployer/-/raw/main/install.sh | sudo bash
+```
+
+This will:
+- Install all system dependencies (PostgreSQL, Nginx, Supervisor, Redis)
+- Create deployment user and directory structure
+- Configure database and services
+- Deploy PyDeployer itself
+- Create admin user (admin/admin123)
+- Start all services
+
+After installation, access PyDeployer at: `http://YOUR_SERVER_IP/`
+
+## 🚀 Alternative: Manual Setup with Makefile
+
+If you prefer to clone and install manually:
 
 ```bash
 # Clone the repository
-git clone git@gitlab.com:unomena-internal/py-deployer.git
-cd py-deployer
+git clone https://gitlab.com/company/pydeployer.git
+cd pydeployer
 
 # One command to rule them all
 make quickstart

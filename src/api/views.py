@@ -1,7 +1,7 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from core.models import (
@@ -341,7 +341,7 @@ class ServiceViewSet(viewsets.ModelViewSet):
 
 class StatusViewSet(viewsets.ViewSet):
     """ViewSet for system status"""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]  # Public endpoint for health checks
     
     def list(self, request):
         """Get overall system status"""

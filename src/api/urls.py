@@ -5,6 +5,7 @@ from .views import (
     ProjectViewSet, EnvironmentViewSet, DeploymentViewSet,
     ServiceViewSet, StatusViewSet
 )
+from .health import health_check
 
 router = DefaultRouter()
 router.register(r'projects', ProjectViewSet)
@@ -16,6 +17,9 @@ router.register(r'status', StatusViewSet, basename='status')
 urlpatterns = [
     path('', include(router.urls)),
     path('auth/token/', obtain_auth_token, name='api_token_auth'),
+    
+    # Public health check endpoint
+    path('health/', health_check, name='api_health'),
     
     # Convenience endpoints
     path('deploy/', DeploymentViewSet.as_view({'post': 'deploy'}), name='api_deploy'),
