@@ -333,8 +333,19 @@ class DeploymentExecutor:
             for hook in hooks:
                 self._run_hook(hook, deployment, env_vars)
     
-    def _run_hook(self, command, deployment, env_vars):
+    def _run_hook(self, hook, deployment, env_vars):
         """Execute a hook command"""
+        # Handle different hook formats
+        if isinstance(hook, str):
+            command = hook
+            description = command[:50] + '...' if len(command) > 50 else command
+        elif isinstance(hook, dict):
+            command = hook.get('command', '')
+            description = hook.get('description', command[:50] + '...' if len(command) > 50 else command)
+        else:
+            self._log(deployment, 'WARNING', f'Invalid hook format: {type(hook)}')
+            return
+        
         venv_path = os.path.join(
             settings.APPS_DIR,
             deployment.environment.project.name,
@@ -364,7 +375,8 @@ class DeploymentExecutor:
                 if py_cmd in command:
                     command = command.replace(py_cmd, os.path.join(venv_path, 'bin', py_cmd))
         
-        self._log(deployment, 'INFO', f'Running hook: {command}')
+        # Log the hook being executed
+        self._log(deployment, 'INFO', f'Running hook: {description}')
         
         try:
             # Set up environment
@@ -386,7 +398,7 @@ class DeploymentExecutor:
             if result.returncode != 0:
                 raise RuntimeError(f"Hook failed: {result.stderr}")
             
-            self._log(deployment, 'INFO', f'Hook completed successfully')
+            self._log(deployment, 'INFO', f'Hook completed: {description}')
             if result.stdout:
                 self._log(deployment, 'DEBUG', f'Hook output: {result.stdout[:500]}')
                 
