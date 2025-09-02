@@ -117,24 +117,24 @@ configure-pydeployer: ## Configure PyDeployer environment
 .PHONY: init-database
 init-database: ## Initialize PyDeployer database
 	@echo "$(YELLOW)Initializing database...$(NC)"
-	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source ../.env && $(VENV_PATH)/bin/python src/manage.py migrate'
+	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && $(VENV_PATH)/bin/python src/manage.py migrate'
 	@echo "$(GREEN)Database initialized!$(NC)"
 
 .PHONY: create-superuser
 create-superuser: ## Create Django superuser
 	@echo "$(YELLOW)Creating superuser...$(NC)"
-	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source ../.env && $(VENV_PATH)/bin/python src/manage.py createsuperuser'
+	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && $(VENV_PATH)/bin/python src/manage.py createsuperuser'
 
 .PHONY: collectstatic
 collectstatic: ## Collect static files
 	@echo "$(YELLOW)Collecting static files...$(NC)"
-	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source ../.env && $(VENV_PATH)/bin/python src/manage.py collectstatic --noinput'
+	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && $(VENV_PATH)/bin/python src/manage.py collectstatic --noinput'
 	@echo "$(GREEN)Static files collected!$(NC)"
 
 .PHONY: register-self
 register-self: ## Register PyDeployer to manage itself
 	@echo "$(YELLOW)Registering PyDeployer for self-management...$(NC)"
-	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source ../.env && $(VENV_PATH)/bin/python src/manage.py register_self'
+	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && $(VENV_PATH)/bin/python src/manage.py register_self'
 	@echo "$(GREEN)PyDeployer registered!$(NC)"
 
 # ==================== Service Management ====================
@@ -143,7 +143,7 @@ register-self: ## Register PyDeployer to manage itself
 start: ## Start PyDeployer service
 	@echo "$(YELLOW)Starting PyDeployer...$(NC)"
 	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/src && \
-		source ../../.env && \
+		source ../.env && \
 		$(VENV_PATH)/bin/gunicorn --bind 127.0.0.1:8000 --workers 2 --threads 4 \
 		--pid /tmp/pydeployer.pid --daemon pydeployer.wsgi'
 	@echo "$(GREEN)PyDeployer started on port 8000!$(NC)"
@@ -259,8 +259,8 @@ list-deployments: ## List recent deployments
 
 .PHONY: shell
 shell: ## Open Django shell
-	@sudo -u $(DEPLOYMENT_USER) bash -c 'source $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/.env && \
-		$(MANAGE_PY) shell'
+	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && \
+		$(VENV_PATH)/bin/python src/manage.py shell'
 
 .PHONY: dbshell
 dbshell: ## Open database shell
@@ -269,18 +269,18 @@ dbshell: ## Open database shell
 .PHONY: test
 test: ## Run tests
 	@echo "$(YELLOW)Running tests...$(NC)"
-	@sudo -u $(DEPLOYMENT_USER) bash -c 'source $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/.env && \
-		$(MANAGE_PY) test'
+	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && \
+		$(VENV_PATH)/bin/python src/manage.py test'
 
 .PHONY: makemigrations
 makemigrations: ## Create new migrations
-	@sudo -u $(DEPLOYMENT_USER) bash -c 'source $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/.env && \
-		$(MANAGE_PY) makemigrations'
+	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && \
+		$(VENV_PATH)/bin/python src/manage.py makemigrations'
 
 .PHONY: migrate
 migrate: ## Apply migrations
-	@sudo -u $(DEPLOYMENT_USER) bash -c 'source $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/.env && \
-		$(MANAGE_PY) migrate'
+	@sudo -u $(DEPLOYMENT_USER) bash -c 'cd $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current && source .env && \
+		$(VENV_PATH)/bin/python src/manage.py migrate'
 
 # ==================== Quick Setup ====================
 
