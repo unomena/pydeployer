@@ -172,7 +172,7 @@ server {{
         """Test nginx configuration"""
         try:
             result = subprocess.run(
-                ['nginx', '-t'],
+                ['sudo', 'nginx', '-t'],
                 capture_output=True,
                 text=True
             )
@@ -193,7 +193,7 @@ server {{
             self.test_config()
             
             # Reload nginx
-            subprocess.run(['nginx', '-s', 'reload'], check=True, capture_output=True)
+            subprocess.run(['sudo', 'nginx', '-s', 'reload'], check=True, capture_output=True)
             logger.info("Nginx reloaded successfully")
             
         except subprocess.CalledProcessError as e:
