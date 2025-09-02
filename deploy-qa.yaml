@@ -1,0 +1,34 @@
+name: pydeployer
+environment: qa
+python_version: "3.11"
+requirements: requirements.txt
+
+services:
+  - name: web
+    type: django
+    command: cd src && python manage.py runserver 0.0.0.0:${PORT}
+    enabled: true
+    health_check:
+      endpoint: /api/status/
+      interval: 120
+    resources:
+      max_memory: 512
+      max_cpu: 0.25
+
+env_vars:
+  DJANGO_SETTINGS_MODULE: pydeployer.settings
+  PYTHONUNBUFFERED: "1"
+  DEBUG: "1"
+  ALLOWED_HOSTS: "*"
+  DATABASE_URL: ${SECRET_QA_DATABASE_URL}
+  REDIS_URL: ${SECRET_QA_REDIS_URL}
+  SECRET_KEY: ${SECRET_QA_DJANGO_SECRET_KEY}
+  DEPLOYMENT_ROOT: /opt/deployments
+  DEPLOYMENT_USER: deploy
+
+hooks:
+  pre_deploy:
+    - cd src && python manage.py migrate --noinput
+    - cd src && python manage.py collectstatic --noinput
+  post_deploy:
+    - cd src && python manage.py check
