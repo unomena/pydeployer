@@ -293,6 +293,19 @@ register-project: ## Register a new project (usage: make register-project NAME=m
 	@sudo chmod +x $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/scripts/register_project.sh
 	@sudo -u $(DEPLOYMENT_USER) bash $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/scripts/register_project.sh "$(NAME)" "$(REPO)" "$(PORT)"
 
+.PHONY: deregister-project
+deregister-project: ## Deregister a project (usage: make deregister-project NAME=myapp)
+	@if [ -z "$(NAME)" ]; then \
+		echo "$(RED)Error: NAME is required$(NC)"; \
+		echo "Usage: make deregister-project NAME=myapp"; \
+		exit 1; \
+	fi
+	@echo "$(YELLOW)Deregistering project $(NAME)...$(NC)"
+	@sudo cp $(CURRENT_DIR)/scripts/deregister_project.sh $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/scripts/
+	@sudo chown $(DEPLOYMENT_USER):$(DEPLOYMENT_USER) $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/scripts/deregister_project.sh
+	@sudo chmod +x $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/scripts/deregister_project.sh
+	@sudo -u $(DEPLOYMENT_USER) bash $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/scripts/deregister_project.sh "$(NAME)"
+
 .PHONY: list-projects
 list-projects: ## List all registered projects
 	@echo "$(YELLOW)Registered Projects:$(NC)"
