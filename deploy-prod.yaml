@@ -6,7 +6,7 @@ requirements: requirements.txt
 services:
   - name: web
     type: django
-    command: gunicorn --bind 127.0.0.1:${PORT} --workers=2 --threads=4 --worker-class=gthread pydeployer.wsgi
+    command: gunicorn --bind 0.0.0.0:${PORT} --workers=2 --threads=4 --worker-class=gthread pydeployer.wsgi
     enabled: true
     health_check:
       endpoint: /api/status/
