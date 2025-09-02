@@ -109,6 +109,9 @@ install-pydeployer: ## Install PyDeployer for the first time
 configure-pydeployer: ## Configure PyDeployer environment
 	@echo "$(YELLOW)Configuring PyDeployer...$(NC)"
 	@sudo cp $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/.env.example $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/.env
+	@# Generate a new Fernet encryption key using the virtual environment
+	@ENCRYPTION_KEY=$$(sudo -u $(DEPLOYMENT_USER) $(VENV_PATH)/bin/python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())") && \
+		sudo sed -i "s|ENCRYPTION_KEY=.*|ENCRYPTION_KEY=$$ENCRYPTION_KEY|" $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/.env
 	@sudo sed -i 's|DATABASE_URL=.*|DATABASE_URL=postgresql://$(DB_USER):$(DB_PASS)@localhost/$(DB_NAME)|' $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/.env
 	@sudo sed -i 's|DEPLOYMENT_ROOT=.*|DEPLOYMENT_ROOT=$(DEPLOYMENT_ROOT)|' $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/.env
 	@sudo sed -i 's|DEPLOYMENT_USER=.*|DEPLOYMENT_USER=$(DEPLOYMENT_USER)|' $(DEPLOYMENT_ROOT)/apps/pydeployer/releases/current/.env

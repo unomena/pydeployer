@@ -10,8 +10,19 @@ class EncryptedJSONField(models.JSONField):
     """Custom field to store encrypted JSON data"""
     
     def __init__(self, *args, **kwargs):
-        self.key = os.environ.get('ENCRYPTION_KEY', Fernet.generate_key().decode())
-        self.cipher = Fernet(self.key.encode() if isinstance(self.key, str) else self.key)
+        key = os.environ.get('ENCRYPTION_KEY')
+        if not key:
+            # Generate a default key if none is provided (for migrations)
+            key = Fernet.generate_key().decode()
+            print(f"WARNING: No ENCRYPTION_KEY found, using temporary key. Set ENCRYPTION_KEY in environment.")
+        self.key = key
+        try:
+            self.cipher = Fernet(self.key.encode() if isinstance(self.key, str) else self.key)
+        except ValueError as e:
+            # If the key is invalid, generate a new one
+            print(f"WARNING: Invalid ENCRYPTION_KEY: {e}. Generating new key.")
+            self.key = Fernet.generate_key().decode()
+            self.cipher = Fernet(self.key.encode())
         super().__init__(*args, **kwargs)
     
     def from_db_value(self, value, expression, connection):
