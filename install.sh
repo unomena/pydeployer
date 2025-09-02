@@ -17,7 +17,7 @@ DEPLOYMENT_USER="deploy"
 DB_NAME="pydeployer"
 DB_USER="deployer"
 DB_PASSWORD="deployer_pass_2024"
-REPO_URL="${REPO_URL:-https://gitlab.com/unomena-internal/py-deployer.git}"
+REPO_URL="${REPO_URL:-https://github.com/unomena/pydeployer.git}"
 GITLAB_TOKEN="${GITLAB_TOKEN:-}"
 SERVER_IP=$(hostname -I | awk '{print $1}')
 
@@ -191,7 +191,7 @@ CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8000
 ENCRYPTION_KEY=$(python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
 
 # PyDeployer Self-Management
-PYDEPLOYER_REPO=https://gitlab.com/unomena-internal/py-deployer.git
+PYDEPLOYER_REPO=https://github.com/unomena/pydeployer.git
 EOF
 
 chown $DEPLOYMENT_USER:$DEPLOYMENT_USER $RELEASE_DIR/.env
@@ -365,7 +365,7 @@ from deployer.executor import DeploymentExecutor
 if not Project.objects.filter(name='pydeployer').exists():
     project = Project.objects.create(
         name='pydeployer',
-        repository_url='https://gitlab.com/unomena-internal/py-deployer.git',
+        repository_url='https://github.com/unomena/pydeployer.git',
         description='PyDeployer - Python Deployment Orchestration System'
     )
     

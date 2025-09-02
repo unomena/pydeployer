@@ -7,7 +7,7 @@ A Django-based deployment orchestration system that replaces Docker containers w
 Install PyDeployer on a fresh Ubuntu LTS server with a single command:
 
 ```bash
-curl -fsSL https://gitlab.com/company/pydeployer/-/raw/main/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/unomena/pydeployer/main/install.sh | sudo bash
 ```
 
 This will:
@@ -26,7 +26,7 @@ If you prefer to clone and install manually:
 
 ```bash
 # Clone the repository
-git clone https://gitlab.com/company/pydeployer.git
+git clone https://github.com/unomena/pydeployer.git
 cd pydeployer
 
 # One command to rule them all
