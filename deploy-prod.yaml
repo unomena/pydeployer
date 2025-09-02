@@ -20,7 +20,7 @@ env_vars:
   PYTHONUNBUFFERED: "1"
   DEBUG: "0"
   ALLOWED_HOSTS: "*"
-  DATABASE_URL: "postgresql://deployer:deployer@localhost/pydeployer"
+  DATABASE_URL: "postgresql://deployer:deployer_pass_2024@localhost/pydeployer"
   REDIS_URL: "redis://localhost:6379/0"
   SECRET_KEY: "django-insecure-prod-key-please-change-in-production"
   DEPLOYMENT_ROOT: "/srv/deployments"
