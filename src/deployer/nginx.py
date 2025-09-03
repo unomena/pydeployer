@@ -108,13 +108,13 @@ server {{
     }}
     
     location /static/ {{
-        alias /opt/deployments/apps/{environment.project.name}/releases/{environment.name}/current/staticfiles/;
+        alias /srv/deployments/apps/{environment.project.name}/releases/{environment.name}/current/staticfiles/;
         expires 30d;
         add_header Cache-Control "public, immutable";
     }}
     
     location /media/ {{
-        alias /opt/deployments/apps/{environment.project.name}/media/;
+        alias /srv/deployments/apps/{environment.project.name}/media/;
         expires 7d;
     }}
     
@@ -150,13 +150,13 @@ server {{
     }}
     
     location /static/ {{
-        alias /opt/deployments/apps/{environment.project.name}/releases/{environment.name}/current/staticfiles/;
+        alias /srv/deployments/apps/{environment.project.name}/releases/{environment.name}/current/staticfiles/;
         expires 30d;
         add_header Cache-Control "public, immutable";
     }}
     
     location /media/ {{
-        alias /opt/deployments/apps/{environment.project.name}/media/;
+        alias /srv/deployments/apps/{environment.project.name}/media/;
         expires 7d;
     }}
     

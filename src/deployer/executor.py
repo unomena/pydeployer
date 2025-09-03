@@ -1,4 +1,5 @@
 import os
+import socket
 import shutil
 import subprocess
 import logging
@@ -31,6 +32,19 @@ class DeploymentExecutor:
         self.nginx_manager = NginxManager()
         self.database_manager = DatabaseManager()
     
+    def _get_server_ip(self):
+        """Get the server's primary IP address"""
+        try:
+            # Connect to a public DNS server to determine local IP
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("8.8.8.8", 80))
+            ip = s.getsockname()[0]
+            s.close()
+            return ip
+        except:
+            return "localhost"
+
+
     def deploy(self, project_name, environment_name, commit_sha=None, deployed_by='system'):
         """Execute a deployment"""
         try:
@@ -344,6 +358,40 @@ class DeploymentExecutor:
                 # Secrets are encrypted but not decrypted, skip for now
                 self._log(deployment, 'WARNING', 'Secrets not decrypted, skipping')
         
+        # Add Django security settings automatically
+        server_ip = self._get_server_ip()
+        csrf_origins = [
+            'http://localhost',
+            'http://127.0.0.1',
+            f'http://{server_ip}',
+        ]
+        
+        # Check if we're using a non-standard port
+        nginx_port = 80
+        for service in config.get('services', []):
+            if service.get('type') == 'django':
+                # Try to detect port from nginx config or use default
+                nginx_port = 8080 if environment.project.name != 'pydeployer' else 80
+                if nginx_port != 80:
+                    csrf_origins.extend([
+                        f'http://localhost:{nginx_port}',
+                        f'http://127.0.0.1:{nginx_port}',
+                        f'http://{server_ip}:{nginx_port}',
+                    ])
+                break
+        
+        # Set CSRF_TRUSTED_ORIGINS if not already set
+        if 'CSRF_TRUSTED_ORIGINS' not in env_vars:
+            env_vars['CSRF_TRUSTED_ORIGINS'] = ','.join(csrf_origins)
+        
+        # Set ALLOWED_HOSTS if not already set
+        if 'ALLOWED_HOSTS' not in env_vars:
+            env_vars['ALLOWED_HOSTS'] = f'localhost,127.0.0.1,{server_ip}'
+        
+        # Ensure we're not forcing HTTPS redirects
+        if 'SECURE_SSL_REDIRECT' not in env_vars:
+            env_vars['SECURE_SSL_REDIRECT'] = 'False'
+
         self._log(deployment, 'INFO', f'Prepared {len(env_vars)} environment variables')
         return env_vars
     

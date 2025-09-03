@@ -199,9 +199,10 @@ if not DEBUG:
     SECURE_SSL_REDIRECT = False  # Changed to False for development without SSL
     SESSION_COOKIE_SECURE = False
     CSRF_COOKIE_SECURE = False
-    SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
 
 # Note: Auto-migration removed to prevent circular import issues
-# Migrations should be run manually using 'make migrate' or 'python manage.py migrate'
+
+CSRF_TRUSTED_ORIGINS = ["http://localhost", "http://127.0.0.1", "http://192.168.64.70", "http://192.168.64.70:8000"]
+
