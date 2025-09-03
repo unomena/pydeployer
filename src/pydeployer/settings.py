@@ -204,5 +204,24 @@ if not DEBUG:
 
 # Note: Auto-migration removed to prevent circular import issues
 
-CSRF_TRUSTED_ORIGINS = ["http://localhost", "http://127.0.0.1", "http://192.168.64.70", "http://192.168.64.70:8000"]
+# Dynamic CSRF configuration
+import socket
+def get_server_ip():
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except:
+        return None
+
+CSRF_TRUSTED_ORIGINS = ["http://localhost", "http://127.0.0.1"]
+server_ip = get_server_ip()
+if server_ip:
+    CSRF_TRUSTED_ORIGINS.extend([f"http://{server_ip}", f"http://{server_ip}:8000"])
+
+# Also add any from environment variable
+if os.environ.get('CSRF_TRUSTED_ORIGINS'):
+    CSRF_TRUSTED_ORIGINS.extend(os.environ.get('CSRF_TRUSTED_ORIGINS').split(','))
 
