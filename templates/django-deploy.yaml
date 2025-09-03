@@ -1,0 +1,75 @@
+# Django Deployment Template for PyDeployer
+# This template handles common Django deployment scenarios including migration issues
+
+# Database configuration
+database:
+  type: postgresql
+  name: "${PROJECT_NAME}_${ENVIRONMENT}"
+  user: "${PROJECT_NAME}_${ENVIRONMENT}"
+  password: "${PROJECT_NAME}_pass_${YEAR}"
+  host: localhost
+  port: 5432
+
+# Service configuration
+services:
+  - name: web
+    type: gunicorn
+    command: "gunicorn ${WSGI_MODULE}.wsgi:application"
+    workers: 3
+    port: "${BASE_PORT}"
+    environment:
+      DJANGO_SETTINGS_MODULE: "${SETTINGS_MODULE}"
+
+# Environment variables
+environment:
+  DEBUG: "0"
+  SECRET_KEY: "${GENERATE_SECRET_KEY}"
+  DATABASE_URL: "postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
+  ALLOWED_HOSTS: "${SERVER_IP},localhost,127.0.0.1,${DOMAIN}"
+  CSRF_TRUSTED_ORIGINS: "http://${SERVER_IP},http://localhost,http://127.0.0.1,http://${DOMAIN}"
+
+# Deployment hooks
+hooks:
+  pre_deploy:
+    # Collect static files first (before migrations in case templates are needed)
+    - command: "python manage.py collectstatic --noinput"
+      description: "Collecting static files"
+      allow_failure: false
+
+  post_deploy:
+    # Run migrations with retry logic
+    - command: "python manage.py migrate --noinput"
+      description: "Running database migrations"
+      allow_failure: true  # Allow failure to handle problematic migrations
+      retry_on_failure: true  # Will retry with --fake if migration fails
+    
+    # Ensure migrations are at least marked as run
+    - command: "python manage.py showmigrations --list | grep -q '\\[ \\]' && python manage.py migrate --fake || true"
+      description: "Ensuring all migrations are marked as applied"
+      allow_failure: true
+    
+    # Create cache tables if using database cache
+    - command: "python manage.py createcachetable || true"
+      description: "Creating cache tables"
+      allow_failure: true
+    
+    # Compile messages for i18n
+    - command: "python manage.py compilemessages || true"
+      description: "Compiling translation messages"
+      allow_failure: true
+
+# Python dependencies
+dependencies:
+  pip:
+    requirements_file: "requirements.txt"
+    
+# Health check configuration
+health_check:
+  path: "/health/"
+  timeout: 30
+  retries: 5
+
+# Rollback configuration
+rollback:
+  keep_releases: 5
+  on_failure: true

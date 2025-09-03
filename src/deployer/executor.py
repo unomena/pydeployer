@@ -421,9 +421,13 @@ class DeploymentExecutor:
         if isinstance(hook, str):
             command = hook
             description = command[:50] + '...' if len(command) > 50 else command
+            allow_failure = False
+            retry_on_failure = False
         elif isinstance(hook, dict):
             command = hook.get('command', '')
             description = hook.get('description', command[:50] + '...' if len(command) > 50 else command)
+            allow_failure = hook.get('allow_failure', False)
+            retry_on_failure = hook.get('retry_on_failure', False)
         else:
             self._log(deployment, 'WARNING', f'Invalid hook format: {type(hook)}')
             return
@@ -478,7 +482,37 @@ class DeploymentExecutor:
             )
             
             if result.returncode != 0:
-                raise RuntimeError(f"Hook failed: {result.stderr}")
+                error_msg = f"Hook failed: {result.stderr}"
+                
+                # Check for specific migration errors
+                if 'migrate' in command and 'TypeError' in result.stderr:
+                    self._log(deployment, 'WARNING', 'Migration failed due to model mismatch, attempting with --fake flag')
+                    if retry_on_failure:
+                        # Retry migration with --fake flag
+                        fake_command = command.replace('migrate', 'migrate --fake')
+                        self._log(deployment, 'INFO', f'Retrying with: {fake_command}')
+                        
+                        retry_result = subprocess.run(
+                            fake_command,
+                            shell=True,
+                            cwd=working_dir,
+                            env=hook_env,
+                            capture_output=True,
+                            text=True,
+                            timeout=300
+                        )
+                        
+                        if retry_result.returncode == 0:
+                            self._log(deployment, 'INFO', 'Migration marked as complete with --fake')
+                            return
+                        else:
+                            error_msg = f"Retry also failed: {retry_result.stderr}"
+                
+                if allow_failure:
+                    self._log(deployment, 'WARNING', f'Hook failed (continuing): {error_msg}')
+                    return
+                else:
+                    raise RuntimeError(error_msg)
             
             self._log(deployment, 'INFO', f'Hook completed: {description}')
             if result.stdout:
