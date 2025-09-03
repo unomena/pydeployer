@@ -126,8 +126,8 @@ class Environment(models.Model):
     
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='environments')
     name = models.CharField(max_length=20, choices=ENVIRONMENT_CHOICES)
-    config = models.JSONField(default=dict, help_text="Parsed deploy-{env}.yaml content")
-    secrets = EncryptedJSONField(default=dict, help_text="Environment-specific secrets")
+    config = models.JSONField(default=dict, blank=True, help_text="Parsed deploy-{env}.yaml content")
+    secrets = EncryptedJSONField(default=dict, blank=True, help_text="Environment-specific secrets")
     active = models.BooleanField(default=True)
     domain = models.CharField(max_length=255, blank=True, help_text="Domain for this environment")
     ssl_enabled = models.BooleanField(default=False)
