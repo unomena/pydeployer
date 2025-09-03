@@ -86,7 +86,7 @@ class EncryptedJSONField(models.JSONField):
 class Project(models.Model):
     """Represents a deployable project"""
     name = models.CharField(max_length=100, unique=True, db_index=True)
-    repository_url = models.URLField(help_text="Git repository URL")
+    repository_url = models.CharField(max_length=500, help_text="Git repository URL (https:// or git@)")
     deploy_key = models.TextField(blank=True, null=True, default='', help_text="SSH key for private repositories")
     default_branch = models.CharField(max_length=100, default='main')
     port_start = models.IntegerField(help_text="Starting port for service allocation")
