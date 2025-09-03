@@ -45,6 +45,30 @@ class DeploymentExecutor:
             return "localhost"
 
 
+    def _execute_deployment_steps(self, deployment):
+        """Execute the actual deployment steps for a deployment object"""
+        environment = deployment.environment
+        project = environment.project
+        commit_sha = deployment.commit_sha if deployment.commit_sha != 'HEAD' else None
+        
+        # Execute deployment steps
+        self._clone_or_update_repo(project, deployment)
+        self._checkout_commit(project, deployment, commit_sha)
+        config = self._load_deployment_config(project, environment.name, deployment)
+        self._ensure_database(project, environment, config, deployment)
+        self._create_release_directory(project, environment, deployment)
+        self._setup_virtual_environment(project, environment, config, deployment)
+        self._install_dependencies(project, environment, config, deployment)
+        env_vars = self._prepare_environment_variables(environment, config, deployment)
+        self._run_pre_deploy_hooks(config, deployment, env_vars)
+        self._update_supervisor_configs(project, environment, config, deployment, env_vars)
+        self._update_nginx_config(project, environment, config, deployment)
+        self._switch_symlink(project, environment, deployment)
+        self._reload_services(project, environment, deployment)
+        self._perform_health_checks(environment, deployment)
+        self._run_post_deploy_hooks(config, deployment, env_vars)
+        self._cleanup_old_releases(project, environment, deployment)
+    
     def deploy(self, project_name, environment_name, commit_sha=None, deployed_by='system'):
         """Execute a deployment"""
         try:
@@ -65,22 +89,7 @@ class DeploymentExecutor:
             
             try:
                 # Execute deployment steps
-                self._clone_or_update_repo(project, deployment)
-                self._checkout_commit(project, deployment, commit_sha)
-                config = self._load_deployment_config(project, environment_name, deployment)
-                self._ensure_database(project, environment, config, deployment)
-                self._create_release_directory(project, environment, deployment)
-                self._setup_virtual_environment(project, environment, config, deployment)
-                self._install_dependencies(project, environment, config, deployment)
-                env_vars = self._prepare_environment_variables(environment, config, deployment)
-                self._run_pre_deploy_hooks(config, deployment, env_vars)
-                self._update_supervisor_configs(project, environment, config, deployment, env_vars)
-                self._update_nginx_config(project, environment, config, deployment)
-                self._switch_symlink(project, environment, deployment)
-                self._reload_services(project, environment, deployment)
-                self._perform_health_checks(environment, deployment)
-                self._run_post_deploy_hooks(config, deployment, env_vars)
-                self._cleanup_old_releases(project, environment, deployment)
+                self._execute_deployment_steps(deployment)
                 
                 # Mark deployment as successful
                 deployment.status = 'active'

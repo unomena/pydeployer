@@ -247,6 +247,38 @@ stderr_logfile=$DEPLOYMENT_ROOT/apps/pydeployer/logs/prod/web_stderr.log
 stderr_logfile_maxbytes=10MB
 stderr_logfile_backups=5
 environment=DJANGO_SETTINGS_MODULE="pydeployer.settings",PYTHONUNBUFFERED="1",DEBUG="0",ALLOWED_HOSTS="*",DATABASE_URL="postgresql://$DB_USER:$DB_PASSWORD@localhost/$DB_NAME",DEPLOYMENT_ROOT="$DEPLOYMENT_ROOT",ENCRYPTION_KEY="$ENCRYPTION_KEY"
+
+[program:pydeployer-worker]
+command=$VENV_PATH/bin/celery -A pydeployer worker -l info --concurrency=2 -Q deployments,celery
+directory=$RELEASE_DIR/src
+user=$DEPLOYMENT_USER
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+startsecs=10
+stdout_logfile=$DEPLOYMENT_ROOT/apps/pydeployer/logs/prod/worker_stdout.log
+stderr_logfile=$DEPLOYMENT_ROOT/apps/pydeployer/logs/prod/worker_stderr.log
+stdout_logfile_maxbytes=10MB
+stderr_logfile_maxbytes=10MB
+stdout_logfile_backups=5
+stderr_logfile_backups=5
+environment=DJANGO_SETTINGS_MODULE="pydeployer.settings",PYTHONUNBUFFERED="1",DEBUG="0",DATABASE_URL="postgresql://$DB_USER:$DB_PASSWORD@localhost/$DB_NAME",DEPLOYMENT_ROOT="$DEPLOYMENT_ROOT",ENCRYPTION_KEY="$ENCRYPTION_KEY",REDIS_URL="redis://localhost:6379/0"
+
+[program:pydeployer-beat]
+command=$VENV_PATH/bin/celery -A pydeployer beat -l info
+directory=$RELEASE_DIR/src
+user=$DEPLOYMENT_USER
+autostart=true
+autorestart=true
+startsecs=10
+stdout_logfile=$DEPLOYMENT_ROOT/apps/pydeployer/logs/prod/beat_stdout.log
+stderr_logfile=$DEPLOYMENT_ROOT/apps/pydeployer/logs/prod/beat_stderr.log
+stdout_logfile_maxbytes=10MB
+stderr_logfile_maxbytes=10MB
+stdout_logfile_backups=5
+stderr_logfile_backups=5
+environment=DJANGO_SETTINGS_MODULE="pydeployer.settings",PYTHONUNBUFFERED="1",DEBUG="0",DATABASE_URL="postgresql://$DB_USER:$DB_PASSWORD@localhost/$DB_NAME",DEPLOYMENT_ROOT="$DEPLOYMENT_ROOT",ENCRYPTION_KEY="$ENCRYPTION_KEY",REDIS_URL="redis://localhost:6379/0"
 EOF
 
 # Configure Nginx
@@ -316,7 +348,7 @@ systemctl restart supervisor
 sleep 2  # Wait for supervisor to fully start
 supervisorctl reread || true
 supervisorctl update || true
-supervisorctl start pydeployer-web || supervisorctl restart pydeployer-web || true
+supervisorctl start pydeployer-web pydeployer-worker pydeployer-beat || supervisorctl restart pydeployer-web pydeployer-worker pydeployer-beat || true
 nginx -t && systemctl restart nginx
 
 # Register PyDeployer with itself

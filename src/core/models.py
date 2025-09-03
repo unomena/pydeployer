@@ -195,6 +195,25 @@ class Deployment(models.Model):
     def __str__(self):
         return f"{self.environment} - {self.version} ({self.status})"
     
+    def save(self, *args, **kwargs):
+        """Override save to trigger deployment processing"""
+        is_new = self.pk is None
+        old_status = None
+        
+        if not is_new:
+            # Get the old status if updating
+            old_obj = Deployment.objects.filter(pk=self.pk).first()
+            if old_obj:
+                old_status = old_obj.status
+        
+        # Save the deployment
+        super().save(*args, **kwargs)
+        
+        # Trigger async processing if this is a new deployment or status changed to pending
+        if (is_new and self.status == 'pending') or (old_status != 'pending' and self.status == 'pending'):
+            from deployer.tasks import process_deployment
+            process_deployment.delay(self.id)
+    
     def mark_active(self):
         """Mark this deployment as active and deactivate others"""
         # Deactivate other deployments
