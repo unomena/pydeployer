@@ -418,6 +418,41 @@ else
     print_warning "You can check status later with: curl http://$SERVER_IP/health/"
 fi
 
+# Generate SSH key for deploy user
+print_status "Generating SSH key for deploy user..."
+SSH_DIR="/home/$DEPLOYMENT_USER/.ssh"
+sudo -u $DEPLOYMENT_USER mkdir -p $SSH_DIR
+chmod 700 $SSH_DIR
+
+if [ ! -f "$SSH_DIR/id_ed25519" ]; then
+    sudo -u $DEPLOYMENT_USER ssh-keygen -t ed25519 -C "deploy@pydeployer-$SERVER_IP" -f "$SSH_DIR/id_ed25519" -N ""
+    
+    # Configure SSH for GitLab/GitHub
+    cat >> "$SSH_DIR/config" << EOF
+
+# GitLab
+Host gitlab.com
+    HostName gitlab.com
+    User git
+    IdentityFile ~/.ssh/id_ed25519
+    StrictHostKeyChecking no
+
+# GitHub
+Host github.com
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/id_ed25519
+    StrictHostKeyChecking no
+EOF
+    chmod 600 "$SSH_DIR/config"
+    chown $DEPLOYMENT_USER:$DEPLOYMENT_USER "$SSH_DIR/config"
+fi
+
+# Set correct permissions
+chown -R $DEPLOYMENT_USER:$DEPLOYMENT_USER $SSH_DIR
+chmod 600 $SSH_DIR/id_ed25519 2>/dev/null || true
+chmod 644 $SSH_DIR/id_ed25519.pub 2>/dev/null || true
+
 # Print completion message
 echo ""
 echo "========================================"
@@ -432,4 +467,15 @@ echo ""
 echo "API Health Check: http://$SERVER_IP/health/"
 echo ""
 echo -e "${YELLOW}IMPORTANT: Please change the admin password after first login!${NC}"
+echo ""
+echo "========================================"
+echo "SSH Deploy Key Generated!"
+echo "========================================"
+echo "Add this SSH public key to your Git repository:"
+echo ""
+cat "$SSH_DIR/id_ed25519.pub"
+echo ""
+echo "To retrieve this key later, run:"
+echo "  make show-deploy-key"
+echo "========================================"
 echo ""

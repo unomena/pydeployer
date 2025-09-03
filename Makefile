@@ -81,6 +81,31 @@ setup-deploy-key: ## Setup SSH key for deploy user
 	@chmod +x $(CURRENT_DIR)/scripts/setup_deploy_key.sh
 	@sudo $(CURRENT_DIR)/scripts/setup_deploy_key.sh
 
+.PHONY: show-deploy-key
+show-deploy-key: ## Show the deploy user's public SSH key
+	@echo "$(YELLOW)PyDeployer SSH Deploy Key:$(NC)"
+	@echo "========================================"
+	@if [ -f "/home/$(DEPLOYMENT_USER)/.ssh/id_ed25519.pub" ]; then \
+		cat "/home/$(DEPLOYMENT_USER)/.ssh/id_ed25519.pub"; \
+		echo ""; \
+		echo "========================================"; \
+		echo "Add this key to your Git repository:"; \
+		echo "- GitLab: Settings -> Repository -> Deploy Keys"; \
+		echo "- GitHub: Settings -> Deploy keys"; \
+		echo "========================================"; \
+	elif [ -f "/home/$(DEPLOYMENT_USER)/.ssh/id_rsa.pub" ]; then \
+		cat "/home/$(DEPLOYMENT_USER)/.ssh/id_rsa.pub"; \
+		echo ""; \
+		echo "========================================"; \
+		echo "Add this key to your Git repository:"; \
+		echo "- GitLab: Settings -> Repository -> Deploy Keys"; \
+		echo "- GitHub: Settings -> Deploy keys"; \
+		echo "========================================"; \
+	else \
+		echo "$(RED)No SSH key found for deploy user!$(NC)"; \
+		echo "Run 'make setup-deploy-key' to generate one."; \
+	fi
+
 .PHONY: setup-environment
 setup-environment: ## Complete environment setup
 	@make install-system-deps
