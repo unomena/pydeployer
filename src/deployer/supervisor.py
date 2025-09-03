@@ -93,6 +93,17 @@ class SupervisorManager:
                 elif f" {exe} " in command or command.endswith(f" {exe}"):
                     command = command.replace(exe, os.path.join(venv_path, 'bin', exe))
         
+        # For gunicorn commands, ensure bind address is included if port is specified
+        if 'gunicorn' in command and service.port and '--bind' not in command and '-b' not in command:
+            # Insert bind address after gunicorn but before the app module
+            parts = command.split()
+            gunicorn_idx = next((i for i, p in enumerate(parts) if 'gunicorn' in p), -1)
+            if gunicorn_idx >= 0:
+                # Insert bind option right after gunicorn
+                parts.insert(gunicorn_idx + 1, '--bind')
+                parts.insert(gunicorn_idx + 2, f'0.0.0.0:{service.port}')
+                command = ' '.join(parts)
+        
         return command
     
     def _get_working_directory(self, deployment):
