@@ -345,8 +345,10 @@ class DeploymentExecutor:
         env_vars['PROJECT_NAME'] = environment.project.name
         
         # Add config environment variables
-        if 'env_vars' in config:
-            for key, value in config['env_vars'].items():
+        # Check both 'environment' and 'env_vars' keys for backward compatibility
+        env_section = config.get('environment', config.get('env_vars', {}))
+        if env_section:
+            for key, value in env_section.items():
                 # Replace placeholders with secrets
                 if isinstance(value, str) and value.startswith('${') and value.endswith('}'):
                     secret_key = value[2:-1]
